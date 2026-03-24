@@ -1,0 +1,18 @@
+#!/bin/bash
+create_db()  {
+read -p "Enter DataBase Name: " db_name
+if [ -z "$db_name" ] ; then
+echo "Error:Database name can't be empty"
+elif [[ ! $dbname =~ ^[a-zA-Z] ]]; then
+echo "Error: Name must  start only with letters"
+elif [[ $db_name == *" "* ]]; then
+echo "Error: Database name is only 1 word you can use (-,_,$,...)"
+elif [ -d DBMS/$db_name ]; then
+echo "Error: Database $db_name exists"
+else
+mkdir DBMS/$db_name
+echo "Database has been created successfully ✅ "
+fi
+}
+
+
