@@ -14,9 +14,9 @@ select choice in "Create Database" "List Databases" "Connect To Database" "Drop 
 	do
 		case $REPLY in
 			1) create_db ;;
-			2) echo  "Data Base listed" ;;
- 			3) echo  "Data Base connected" ;;
- 			4) echo  "Data Base dropped" ;;
+			2) list_db ;;
+ 			3) connect_db ;;
+ 			4) drop_db ;;
  			5) echo  "exited" 
 				 break ;;
 			*) echo " $REPLY is not an option "			 

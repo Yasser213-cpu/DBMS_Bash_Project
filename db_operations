@@ -1,10 +1,12 @@
 #!/bin/bash
+
+
 create_db()  {
 read -p "Enter DataBase Name: " db_name
 if [ -z "$db_name" ] ; then
 echo "Error:Database name can't be empty"
-elif [[ ! $dbname =~ ^[a-zA-Z] ]]; then
-echo "Error: Name must  start only with letters"
+elif [[ ! $db_name =~ ^[a-zA-Z] ]]; then
+echo "Error: Name must start only with letters"
 elif [[ $db_name == *" "* ]]; then
 echo "Error: Database name is only 1 word you can use (-,_,$,...)"
 elif [ -d DBMS/$db_name ]; then
@@ -16,3 +18,54 @@ fi
 }
 
 
+function list_db {
+if [ -z "$(ls -A  DBMS)" ] 
+then 
+	echo "There is no databases yet" 
+else 
+	echo "=============================="
+	echo "DataBases in the system: "
+	echo "=============================="
+	ls DBMS
+fi
+
+}
+
+function connect_db {
+
+read -p "Enter DataBase name to connect: " db_name
+if [[ -z "$db_name"  ]]
+then
+	echo "DataBase name cannot be empty!" 
+elif [[ ! -d "DBMS/$db_name" ]]
+then 
+	echo "DataBase not exists!!"
+else 
+	cd "DBMS/$db_name"
+	pwd 
+	echo "Connected to $db_name successfully ✅"
+fi
+
+}
+
+function drop_db {
+read -p "Enter DataBase name to be dropped: " db_name
+if [[ -z "$db_name"  ]]
+then
+        echo "DataBase name cannot be empty!"
+elif [[ ! -d "DBMS/$db_name" ]]
+then 
+        echo "DataBase not exists!!"
+else 
+	read -p "Are you sure to drop $db_name? (Y\N)" confirm
+	if [[ "$confirm" =~ ^[Yy] ]]
+	then
+		rm -r "DBMS/$db_name"
+		echo "DataBase $db_name dropped successfully ✅"
+	else
+		echo "Drop Cancelled!"
+	fi
+
+fi
+
+}
