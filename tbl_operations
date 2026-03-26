@@ -1,0 +1,80 @@
+#!/bin/bash
+function create_table {
+local db=$1
+read -p "Enter the table to create:  " tbl_name
+
+if [ -z "$tbl_name" ] ; then
+echo "Error:Table name can't be empty"
+elif [[ -f "DBMS/$db/$tbl_name.meta" ]] ; then
+echo "Error: $tbl_name is already existed "
+elif [[ ! $tbl_name =~ ^[a-zA-Z] ]]; then
+echo "Error: Name must start only with letters"
+elif [[ $tbl_name == *" "* ]]; then
+echo "Error: table name is only 1 word you can use (-,_,$,...)"
+else
+typeset -i num_col
+read -p "Enter number of columns you wanted" num_col
+	if [[ $num_col -eq 0 ]] ; then
+	echo "you must enter a number greater than 0"
+	else
+	cols_names=""
+	cols_types=""
+	col_pk=""
+	for (( i=1; i<=$num_col; i++ )); do
+		read -p "enter name for column $i: " col_name
+		if [ -z "$col_name" ] ; then
+		echo "Error:Column name can't be empty"
+		i=$i-1
+		elif [[ ":$cols_names:" == *":$col_name"*  ]] ; then
+		echo "Error: $col_name is already existed "
+		i=$i-1
+		elif [[ ! $col_name =~ ^[a-zA-Z] ]]; then
+		echo "Error: Name must start only with letters"
+                i=$i-1
+
+		elif [[ $col_name == *" "* ]]; then
+		echo "Error: Column name is only 1 word you can use (-,_,$,...)"
+                i=$i-1
+		else
+		old_ps3="$PS3"
+		PS3="Choose type for $col_name: "
+		select type in "int" "string"
+		do
+			case $type in
+				int|string) col_type=$type
+				break;;
+				*)echo "Invalid option";;
+			esac
+		done
+		if [ -z "$col_pk" ] ; then
+			read -p "Do you want $col_name a primary key? (yes/No) : " is_pk
+			if [[ "$is_pk" =~ ^[yY] ]] ; then
+				col_pk=$col_name
+			fi
+		fi
+		if [[ $i -eq $num_col ]]; then
+			cols_names+=$col_name
+			cols_types+=$col_type
+		else
+			cols_names+="$col_name:"
+                	 cols_types+="$col_type:"
+		fi
+	fi
+	done
+	echo "$cols_names" > "DBMS/$db/$tbl_name.meta"
+	echo "$cols_types" >> "DBMS/$db/$tbl_name.meta"
+        echo "PK:$col_pk" >> "DBMS/$db/$tbl_name.meta"
+
+	echo "Table has been created successfully ✅"
+	PS3="$old_ps3"
+
+
+
+			
+	fi
+fi
+
+
+}
+
+
