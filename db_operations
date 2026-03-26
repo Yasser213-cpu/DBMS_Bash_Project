@@ -1,6 +1,4 @@
 #!/bin/bash
-
-
 create_db()  {
 read -p "Enter DataBase Name: " db_name
 if [ -z "$db_name" ] ; then
@@ -41,10 +39,10 @@ elif [[ ! -d "DBMS/$db_name" ]]
 then 
 	echo "DataBase not exists!!"
 else 
-	cd "DBMS/$db_name"
-	pwd 
 	echo "Connected to $db_name successfully ✅"
+	create_table "$db_name"	
 fi
+
 
 }
 

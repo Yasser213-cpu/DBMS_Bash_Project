@@ -1,5 +1,7 @@
 #!/bin/bash
+source ./tbl_operations
 source ./db_operations
+
 
 
 clear
