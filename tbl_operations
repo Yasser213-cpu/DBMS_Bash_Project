@@ -1,80 +1,145 @@
 #!/bin/bash
 function create_table {
-local db=$1
-read -p "Enter the table to create:  " tbl_name
+    local db=$1
+    local old_ps3="$PS3"
+    read -p "Enter the table to create:  " tbl_name
 
-if [ -z "$tbl_name" ] ; then
-echo "Error:Table name can't be empty"
-elif [[ -f "DBMS/$db/$tbl_name.meta" ]] ; then
-echo "Error: $tbl_name is already existed "
-elif [[ ! $tbl_name =~ ^[a-zA-Z] ]]; then
-echo "Error: Name must start only with letters"
-elif [[ $tbl_name == *" "* ]]; then
-echo "Error: table name is only 1 word you can use (-,_,$,...)"
-else
-typeset -i num_col
-read -p "Enter number of columns you wanted" num_col
-	if [[ $num_col -eq 0 ]] ; then
-	echo "you must enter a number greater than 0"
-	else
-	cols_names=""
-	cols_types=""
-	col_pk=""
-	for (( i=1; i<=$num_col; i++ )); do
-		read -p "enter name for column $i: " col_name
-		if [ -z "$col_name" ] ; then
-		echo "Error:Column name can't be empty"
-		i=$i-1
-		elif [[ ":$cols_names:" == *":$col_name"*  ]] ; then
-		echo "Error: $col_name is already existed "
-		i=$i-1
-		elif [[ ! $col_name =~ ^[a-zA-Z] ]]; then
-		echo "Error: Name must start only with letters"
-                i=$i-1
-
-		elif [[ $col_name == *" "* ]]; then
-		echo "Error: Column name is only 1 word you can use (-,_,$,...)"
-                i=$i-1
-		else
-		old_ps3="$PS3"
-		PS3="Choose type for $col_name: "
-		select type in "int" "string"
+    if [ -z "$tbl_name" ] ; then
+        echo "Error:Table name can't be empty"
+    elif [[ -f "DBMS/$db/$tbl_name.meta" ]] ; then
+        echo "Error: $tbl_name is already existed "
+    elif [[ ! $tbl_name =~ ^[a-zA-Z] ]]; then
+        echo "Error: Name must start only with letters"
+    elif [[ $tbl_name == *" "* ]]; then
+        echo "Error: table name is only 1 word you can use (-,_,$,...)"
+    else
+        typeset -i num_col
+		while true
 		do
-			case $type in
-				int|string) col_type=$type
-				break;;
-				*)echo "Invalid option";;
-			esac
-		done
-		if [ -z "$col_pk" ] ; then
-			read -p "Do you want $col_name a primary key? (yes/No) : " is_pk
-			if [[ "$is_pk" =~ ^[yY] ]] ; then
-				col_pk=$col_name
+        	read -p "Enter number of columns you wanted: " num_col
+			if [[ $num_col -eq 0 ]] ; then
+            	echo "you must enter a number greater than 0 !!"
+        	else
+				break
 			fi
-		fi
-		if [[ $i -eq $num_col ]]; then
-			cols_names+=$col_name
-			cols_types+=$col_type
-		else
-			cols_names+="$col_name:"
-                	 cols_types+="$col_type:"
-		fi
-	fi
-	done
-	echo "$cols_names" > "DBMS/$db/$tbl_name.meta"
-	echo "$cols_types" >> "DBMS/$db/$tbl_name.meta"
-        echo "PK:$col_pk" >> "DBMS/$db/$tbl_name.meta"
+		done
 
-	echo "Table has been created successfully ✅"
-	PS3="$old_ps3"
+        
+            cols_names=""
+            cols_types=""
+            col_pk=""
 
+            for (( i=1; i<=$num_col; i++ )); do
+                read -p "enter name for column $i: " col_name
 
+                if [ -z "$col_name" ] ; then
+                    echo "Error:Column name can't be empty"
+                    i=$i-1
+                elif [[ ":$cols_names:" == *":$col_name"*  ]] ; then
+                    echo "Error: $col_name is already existed "
+                    i=$i-1
+                elif [[ ! $col_name =~ ^[a-zA-Z] ]]; then
+                    echo "Error: Name must start only with letters"
+                    i=$i-1
+                elif [[ $col_name == *" "* ]]; then
+                    echo "Error: Column name is only 1 word you can use (-,_,$,...)"
+                    i=$i-1
+                else
+                    PS3="Choose type for $col_name: "
 
-			
-	fi
-fi
+                    select type in "int" "string"
+                    do
+                        case $type in
+                            int|string)
+                                col_type=$type
+                                break
+                                ;;
+                            *)
+                                echo "Invalid option"
+                                ;;
+                        esac
+                    done
 
+                    if [ -z "$col_pk" ] ; then
+                        read -p "Do you want $col_name a primary key? (yes/No) : " is_pk
+                        if [[ "$is_pk" =~ ^[yY] ]] ; then
+                            col_pk=$col_name
+                        fi
+                    fi
+
+                    if [[ $i -eq $num_col ]]; then
+                        cols_names+=$col_name
+                        cols_types+=$col_type
+                    else
+                        cols_names+="$col_name:"
+                        cols_types+="$col_type:"
+                    fi
+                fi
+            done
+
+            echo "$cols_names" > "DBMS/$db/$tbl_name.meta"
+            echo "$cols_types" >> "DBMS/$db/$tbl_name.meta"
+            echo "PK:$col_pk" >> "DBMS/$db/$tbl_name.meta"
+	    touch "DBMS/$db/$tbl_name.data"
+
+            echo "Table has been created successfully ✅"
+        
+    fi
+            PS3="$old_ps3"
 
 }
 
 
+function insert_into {
+	local db=$1
+	read -p "Enter table name: " tbl_name
+	while true
+	do
+		if [ ! -f "DBMS/$db/$tbl_name.meta" ]
+		then
+			echo "Table not exists!!"
+			read -p "Enter table name: " tbl_name
+		else 
+			break
+		fi 	
+	done
+	record=""
+	col_names_arr=($(awk -F: 'NR==1 {for(i=1;i<=NF;i++) print $i}' "DBMS/$db/$tbl_name.meta"))
+	col_types_arr=($(awk -F: 'NR==2 {for(i=1;i<=NF;i++) print $i}' "DBMS/$db/$tbl_name.meta"))
+	pk=$(awk -F: 'NR==3 {print $2}' "DBMS/$db/$tbl_name.meta")
+	col_num=${#col_names_arr[@]}
+	for((j=0;j<$col_num;j++))
+	do
+		read -p "Enter column ${col_names_arr[$j]} (${col_types_arr[$j]}): " val
+		
+		if [ -z "$val" ]
+		then
+			echo "Value cannot be empty!!"
+			((--j))
+			continue
+		elif [[ "${col_types_arr[$j]}" == "int" ]] && [[ ! "$val" =~ ^[0-9]+$ ]]
+		then
+			echo "You must enter an integer value"
+			((--j))
+			continue
+		elif [[ "${col_types_arr[$j]}" == "string" ]] && [[ ! "$val" =~ ^[A-Za-z0-9]+$ ]]
+		then
+			echo "You must enter a string value"
+			((--j))
+			continue
+		elif [[ "${col_names_arr[$j]}" == "$pk"  ]]  && sed 's/^/:/;s/$/:/' "DBMS/$db/$tbl_name.data" | grep -q  ":$val:"
+		then
+			echo "Primary key cannot be duplicated!!"
+			((--j))
+			continue	
+		fi
+		record+="$val"
+		if [ $j -lt $((col_num-1)) ]
+		then
+    			record+=":"
+		fi
+	done
+
+	echo "$record" >> "DBMS/$db/$tbl_name.data"
+
+}

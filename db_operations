@@ -30,7 +30,7 @@ fi
 }
 
 function connect_db {
-
+local old_ps3="$PS3"
 read -p "Enter DataBase name to connect: " db_name
 if [[ -z "$db_name"  ]]
 then
@@ -40,8 +40,24 @@ then
 	echo "DataBase not exists!!"
 else 
 	echo "Connected to $db_name successfully ✅"
-	create_table "$db_name"	
+	PS3="Choose an operation on table: "
+	select  op in "Create Table" "List Tables" "Drop Table" "Insert into Table" "Select from Table" "Delete from Table" "Update Table" "Back to main menu"
+	do
+		case $REPLY in
+			1)create_table "$db_name" ;;
+			2)echo "Table listed" ;;
+			3)echo "Table dropped" ;;
+			4)insert_into "$db_name" ;;
+			5)echo "Table selected" ;;
+			6)echo "Table deleted" ;;
+			7)echo "Table updated" ;;
+			8)echo "Back to main menu"
+				 break ;;
+			*)echo "Invalid option, Try again!!"			
+		esac
+	done
 fi
+	PS3="$old_ps3"
 
 
 }

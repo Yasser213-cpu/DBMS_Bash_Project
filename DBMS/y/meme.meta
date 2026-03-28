@@ -1,0 +1,3 @@
+id:name:location
+int:string:string
+PK:id
