@@ -45,8 +45,8 @@ else
 	do
 		case $REPLY in
 			1)create_table "$db_name" ;;
-			2)echo "Table listed" ;;
-			3)echo "Table dropped" ;;
+			2)list_tables "$db_name" ;;
+			3)drop_table "$db_name" ;;
 			4)insert_into "$db_name" ;;
 			5)echo "Table selected" ;;
 			6)echo "Table deleted" ;;
