@@ -48,9 +48,9 @@ else
 			2)list_tables "$db_name" ;;
 			3)drop_table "$db_name" ;;
 			4)insert_into "$db_name" ;;
-			5)echo "Table selected" ;;
+			5)select_table "$db_name" ;;
 			6)echo "Table deleted" ;;
-			7)echo "Table updated" ;;
+			7)update_table "$db_name" ;;
 			8)echo "Back to main menu"
 				 break ;;
 			*)echo "Invalid option, Try again!!"			

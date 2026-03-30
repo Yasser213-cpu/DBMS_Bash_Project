@@ -107,6 +107,15 @@ function insert_into {
 	col_names_arr=($(awk -F: 'NR==1 {for(i=1;i<=NF;i++) print $i}' "DBMS/$db/$tbl_name.meta"))
 	col_types_arr=($(awk -F: 'NR==2 {for(i=1;i<=NF;i++) print $i}' "DBMS/$db/$tbl_name.meta"))
 	pk=$(awk -F: 'NR==3 {print $2}' "DBMS/$db/$tbl_name.meta")
+	#pk_index=$(awk -F: -v primary="$pk" ' NR==1 { for(i=1;i<=NF;i++) if($i==primary) print i }' "DBMS/$db/$tbl_name.meta")
+	pk_index=-1 
+	for i in "${!col_names_arr[@]}"
+		 do
+   			if [[ "${col_names_arr[$i]}" == "$pk" ]]; then
+       			pk_index=$((i + 1)) 
+       			break
+   			fi
+		done
 	col_num=${#col_names_arr[@]}
 	for((j=0;j<$col_num;j++))
 	do
@@ -127,11 +136,15 @@ function insert_into {
 			echo "You must enter a string value"
 			((--j))
 			continue
-		elif [[ "${col_names_arr[$j]}" == "$pk"  ]]  && sed 's/^/:/;s/$/:/' "DBMS/$db/$tbl_name.data" | grep -q  ":$val:"
+		elif [[ "${col_names_arr[$j]}" == "$pk"  ]]
 		then
+			check=$(awk -F: -v col="$pk_index" -v new_val="$val" '$col == new_val {print $0}' "DBMS/$db/$tbl_name.data")
+			if [ ! -z "$check" ]
+			then
 			echo "Primary key cannot be duplicated!!"
 			((--j))
-			continue	
+			continue
+			fi	
 		fi
 		record+="$val"
 		if [ $j -lt $((col_num-1)) ]
@@ -177,5 +190,144 @@ function drop_table {
 }
 
 	
+function select_table {
+	local db=$1
 	
+	
+	while true
+	do
+		read -p "Enter table name: " tbl_name
+		if [ ! -f "DBMS/$db/$tbl_name.meta" ]
+		then 
+		echo "Table $tbl_name doesnot exist!!"
+		else 
+			break
+		fi
+	done
 
+	echo "----------------------------"
+	echo "1) Select All"
+	echo "2) Select by a specific column"
+	echo "----------------------------"
+	  
+	read -p "Select an option: " select_op
+	
+	case $select_op in
+	1) 	echo "====================================================="
+		echo "All values of table $tbl_name: "
+	 	echo "====================================================="
+		{ head -1 "DBMS/$db/$tbl_name.meta"; cat "DBMS/$db/$tbl_name.data"; } | column -t -s ":"
+		echo "======================================================"
+		  ;;
+	2) 	
+		echo "------------------------------------------"
+		echo "Available columns: "
+		head -1 "DBMS/$db/$tbl_name.meta" | tr ":" " : "
+		echo "------------------------------------------"
+		while true
+		do						
+			read -p "Enter column name to be filterd with: " col_name
+			col_index=$(awk -F: -v cn="$col_name" ' NR==1 { for(i=1;i<=NF;i++) if(cn==$i) print i }' "DBMS/$db/$tbl_name.meta")
+			if [ -z "$col_index" ]
+			then
+				echo "Column doesn't exist!!"
+			else
+				break
+			fi
+		done
+		read -p "Enter value of column $col_name to serach with: " search_val
+		echo "======================================================"
+		echo "Search Results"
+		echo "======================================================"
+		{
+		head -1 "DBMS/$db/$tbl_name.meta"
+		awk -F: -v ci="$col_index" -v sv="$search_val" '$ci == sv {print $0}' "DBMS/$db/$tbl_name.data"
+		} | column -t -s ":"
+		echo "======================================================"
+		;;
+	*) echo "Invalid option!" ;; 
+	esac
+	
+}	
+
+
+function update_table {
+	db=$1
+	while true
+        do
+                read -p "Enter table name: " tbl_name
+                if [ ! -f "DBMS/$db/$tbl_name.meta" ]
+                then 
+                echo "Table $tbl_name doesnot exist!!"
+                else 
+                        break
+                fi
+        done
+
+	        echo "------------------------------------------"
+                echo "Available columns: "
+                head -1 "DBMS/$db/$tbl_name.meta" | tr ":" " : "
+                echo "------------------------------------------"
+                while true
+                do
+                        read -p "Enter the column name to use for locating the record (WHERE): " col_name
+                        col_index=$(awk -F: -v cn="$col_name" ' NR==1 { for(i=1;i<=NF;i++) if(cn==$i) print i }' "DBMS/$db/$tbl_name.meta")
+                        if [ -z "$col_index" ]
+                        then
+                                echo "Column doesn't exist!!"
+                        else
+                                break
+                        fi
+                done
+                read -p "Enter the value of [$col_name] for the record you want to update: " search_val
+	#	echo "======================================================"
+        #        echo "Records wanted to be updated: "
+        #        echo "======================================================"
+        #        {
+        #       head -1 "DBMS/$db/$tbl_name.meta"
+        #        awk -F: -v ci="$col_index" -v sv="$search_val" '$ci == sv {print $0}' "DBMS/$db/$tbl_name.data"
+        #        } | column -t -s ":"
+        #         echo "======================================================"
+
+		while true
+                do
+                        read -p "Enter the column name to be updated: " col_update
+                        col_index_update=$(awk -F: -v cn="$col_update" ' NR==1 { for(i=1;i<=NF;i++) if(cn==$i) print i }' "DBMS/$db/$tbl_name.meta")
+                        if [ -z "$col_index_update" ]
+                        then
+                                echo "Column doesn't exist!!"
+                        else
+                                break
+                        fi
+                done
+		pk=$(awk -F: ' NR==3 {print $2}' "DBMS/$db/$tbl_name.meta")
+		pk_index=$(awk -F: -v primary="$pk" ' NR==1 { for(i=1;i<=NF;i++) if($i==primary) print i }' "DBMS/$db/$tbl_name.meta")
+		col_upated_datatype=$(awk -F: -v ci="$col_index_update"  ' NR==2 {print $ci}' "DBMS/$db/$tbl_name.meta")
+                #check=$(awk -F: -v col="$pk_index" -v val="$new_val" '$col == val {print $0}' "DBMS/$db/$tbl_name.data")
+
+		while true
+		do
+			read -p "Enter the new value of [$col_update]: " new_val
+			check=$(awk -F: -v col="$pk_index" -v val="$new_val" '$col == val {print $0}' "DBMS/$db/$tbl_name.data")
+			if [ -z "$new_val" ]
+			then
+				echo "Value cann't be empty!!"
+			elif [[ "$col_upated_datatype" == "int" ]] && [[ ! "$new_val" =~ ^[0-9]+$ ]]
+                	then
+                        	echo "You must enter an integer value"
+                	elif [[ "$col_upated_datatype" == "string" ]] && [[ ! "$new_val" =~ ^[A-Za-z0-9]+$ ]]
+                	then
+                        	echo "You must enter a string value"
+			elif [[ "$col_update" == "$pk"  ]] && [ ! -z "$check" ]
+                	then             	
+                        	echo "Primary key cannot be duplicated!!"
+                        
+			else
+				break
+                	fi
+		done
+		
+		
+		
+
+}
