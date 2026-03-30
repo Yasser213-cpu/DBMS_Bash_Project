@@ -326,6 +326,12 @@ function update_table {
 				break
                 	fi
 		done
+	old_lines=$(awk -F: -v ci="$col_index" -v val="$search_val" '$ci == val {print $0} ' "DBMS/$db/$tbl_name.data") 
+	new_lines=$(echo "$old_lines" | awk -F: -v cu="$col_update" -v new_val="$new_val" 'BEGIN{OFS=":"} {$cu=new_val; print $0}')
+echo "DEBUG: Old line was -> $old_lines"
+echo "DEBUG: New line is  -> $new_lines"
+	sed -i "s/^$old_lines$/$new_lines/" "DBMS/$db/$tbl_name.data"
+	echo "update has been done successfully " 
 		
 		
 		
