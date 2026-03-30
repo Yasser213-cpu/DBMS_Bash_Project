@@ -280,6 +280,9 @@ function update_table {
                         fi
                 done
                 read -p "Enter the value of [$col_name] for the record you want to update: " search_val
+		where_check=$(awk -F: -v ci="$col_index" -v val="$search_val" '$ci == val { print $0 }'  "DBMS/$db/$tbl_name.data")
+		if [ ! -z "$where_check" ]
+		then
 	#	echo "======================================================"
         #        echo "Records wanted to be updated: "
         #        echo "======================================================"
@@ -303,7 +306,6 @@ function update_table {
 		pk=$(awk -F: ' NR==3 {print $2}' "DBMS/$db/$tbl_name.meta")
 		pk_index=$(awk -F: -v primary="$pk" ' NR==1 { for(i=1;i<=NF;i++) if($i==primary) print i }' "DBMS/$db/$tbl_name.meta")
 		col_upated_datatype=$(awk -F: -v ci="$col_index_update"  ' NR==2 {print $ci}' "DBMS/$db/$tbl_name.meta")
-                #check=$(awk -F: -v col="$pk_index" -v val="$new_val" '$col == val {print $0}' "DBMS/$db/$tbl_name.data")
 
 		while true
 		do
@@ -325,15 +327,86 @@ function update_table {
 			else
 				break
                 	fi
-		done
-	old_lines=$(awk -F: -v ci="$col_index" -v val="$search_val" '$ci == val {print $0} ' "DBMS/$db/$tbl_name.data") 
-	new_lines=$(echo "$old_lines" | awk -F: -v cu="$col_update" -v new_val="$new_val" 'BEGIN{OFS=":"} {$cu=new_val; print $0}')
-echo "DEBUG: Old line was -> $old_lines"
-echo "DEBUG: New line is  -> $new_lines"
-	sed -i "s/^$old_lines$/$new_lines/" "DBMS/$db/$tbl_name.data"
-	echo "update has been done successfully " 
+		done	
+	awk -F: -v ci_w="$col_index" -v val_w="$search_val" -v cu="$col_index_update" -v new_val="$new_val" 'BEGIN{OFS=":"} { if ( $ci_w == val_w ) $cu = new_val; print $0 }' "DBMS/$db/$tbl_name.data" > "DBMS/$db/$tbl_name.tmp" && mv "DBMS/$db/$tbl_name.tmp" "DBMS/$db/$tbl_name.data"
+	echo "update has been done successfully "
+	echo "==================================================" 
 		
-		
-		
+		else 
+			echo "There are no records match this condition [$col_name]=[$search_val] !!"
+		fi
 
 }
+
+
+
+function delete_from_table {
+    db=$1
+    while true; do
+        read -p "Enter table name: " tbl_name
+        if [ ! -f "DBMS/$db/$tbl_name.meta" ]; then
+            echo "Table $tbl_name does not exist!!"
+        else
+            break
+        fi
+    done
+    echo "1) delete all from table (truncate)"
+    echo "2) delete using where"
+    read -p "Choose an option: " op
+    case "$op" in 
+	1) echo "⚠️ WARNING: You are about to delete the whole table $tbl_name "
+  	read -p "Are you sure? (y/n): " confirm
+	if [[ "$confirm" == "y" || "$confirm" == "Y" ]]; then
+		> "DBMS/$db/$tbl_name.data"
+        	echo "------------------------------------------"
+		echo "All records deleted successfully! ✨"
+        	echo "Table [$tbl_name] is now empty."
+        	echo "------------------------------------------"
+	else
+		echo "operation Canceled ❌"
+	fi 
+	;;
+
+	2)
+    echo "------------------------------------------"
+    echo "Available columns: "
+    head -1 "DBMS/$db/$tbl_name.meta" | tr ":" " : "
+    echo "------------------------------------------"
+
+    while true; do
+	
+	read -p "enter the column name to use for locating the record (WHERE): " col_name
+
+	col_index=$(awk -F: -v cn="$col_name" 'NR==1 {for(i=1;i<=NF;i++) if (cn==$i) print i}' "DBMS/$db/$tbl_name.meta")
+	if [ -z "$col_index" ]; then
+		echo "Column doesn't exist !!"
+	else
+		break
+	fi
+   done
+   read -p "Enter the value of [$col_name] to delete the record: " search_val
+   where_check=$(awk -F: -v ci="$col_index" -v val="$search_val" '$ci == val { print $0 }'  "DBMS/$db/$tbl_name.data")
+   if [ ! -z "$where_check" ] 
+   then
+   echo "⚠️ WARNING: You are about to delete records where [$col_name] is [$search_val]."
+   read -p "Are you sure? (y/n): " confirm
+    
+    if [[ "$confirm" == "y" || "$confirm" == "Y" ]]; then
+        
+        awk -F: -v ci="$col_index" -v sv="$search_val" '$ci != sv {print $0}' "DBMS/$db/$tbl_name.data" > "DBMS/$db/$tbl_name.tmp" && mv "DBMS/$db/$tbl_name.tmp" "DBMS/$db/$tbl_name.data"
+        echo "------------------------------------------"
+        echo "Deletion completed successfully! ✅"
+        echo "------------------------------------------"
+    else
+        echo "Operation canceled. ❌"
+    fi
+    # ---------------------------------- 
+  else
+	echo "there is no record matching your input"
+  fi
+;;
+*) echo "invalid option"
+esac  
+}
+	
+	
